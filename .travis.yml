@@ -29,11 +29,11 @@ script:
   - zip -r quler_windows_86.zip quler_windows_86
   #########################################################
   - gox -osarch="linux/amd64" -verbose -output="quler_linux_64"
-  - mkdir quler_linux_64
-  - cp app.example.conf quler_linux_64/app.conf
-  - cp quler_linux_64 quler_linux_64/quler_linux_64
-  - cp -r result quler_linux_64/
-  - zip -r quler_linux_64.zip quler_linux_64
+  - mkdir quler_linux_64_x
+  - cp app.example.conf quler_linux_64_x/app.conf
+  - cp quler_linux_64 quler_linux_64_x/quler_linux_64
+  - cp -r result quler_linux_64_x/
+  - zip -r quler_linux_64.zip quler_linux_64_x
 
 deploy:
   provider: releases
