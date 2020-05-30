@@ -1,4 +1,4 @@
-module github.com/vmpartner/mq-to-file
+module github.com/vmpartner/quler
 
 go 1.14
 
