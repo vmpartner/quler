@@ -12,7 +12,7 @@ install: true
 
 before_install:
   - go get github.com/mitchellh/gox
-  - apt install zip
+  - sudo apt install zip
 
 script:
   - gox -osarch="windows/amd64" -verbose -output="quler_windows_64"
