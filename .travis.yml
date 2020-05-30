@@ -12,9 +12,15 @@ install: true
 
 before_install:
   - go get github.com/mitchellh/gox
+  - apt install zip
 
 script:
   - gox -osarch="windows/amd64" -verbose -output="quler_windows_64"
+  - mkdir quler_windows_64
+  - cp app.example.conf quler_windows_64/app.conf
+  - cp quler_windows_64.exe quler_windows_64/quler_windows_64.exe
+  - cp -r result quler_windows_64/
+  - zip -r quler_windows_64.zip quler_windows_64
   - gox -osarch="windows/386" -verbose -output="quler_windows_86"
   - gox -osarch="linux/amd64" -verbose -output="quler_linux_64"
 
