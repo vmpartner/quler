@@ -12,7 +12,6 @@ install: true
 
 before_install:
   - go get github.com/mitchellh/gox
-  - sudo apt install zip
 
 script:
   - gox -osarch="windows/amd64" -verbose -output="quler_windows_64"
@@ -21,16 +20,28 @@ script:
   - cp quler_windows_64.exe quler_windows_64/quler_windows_64.exe
   - cp -r result quler_windows_64/
   - zip -r quler_windows_64.zip quler_windows_64
+  #########################################################
   - gox -osarch="windows/386" -verbose -output="quler_windows_86"
+  - mkdir quler_windows_86
+  - cp app.example.conf quler_windows_86/app.conf
+  - cp quler_windows_86.exe quler_windows_86/quler_windows_86.exe
+  - cp -r result quler_windows_86/
+  - zip -r quler_windows_86.zip quler_windows_86
+  #########################################################
   - gox -osarch="linux/amd64" -verbose -output="quler_linux_64"
+  - mkdir quler_linux_64
+  - cp app.example.conf quler_linux_64/app.conf
+  - cp quler_linux_64 quler_linux_64/quler_linux_64
+  - cp -r result quler_linux_64/
+  - zip -r quler_linux_64.zip quler_linux_64
 
 deploy:
   provider: releases
   api_key: $GITHUB_TOKEN
   file:
-  - quler_windows_64.exe
-  - quler_windows_86.exe
-  - quler_linux_64
+  - quler_windows_64.zip
+  - quler_windows_86.zip
+  - quler_linux_64.zip
   skip_cleanup: true
   on:
     tags: true
