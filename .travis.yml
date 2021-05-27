@@ -11,7 +11,7 @@ git:
 install: true
 
 before_install:
-  - apt install build-essential
+  - sudo apt-get -y install build-essential
   - go get github.com/mitchellh/gox
 
 script:
