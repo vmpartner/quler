@@ -1,114 +1,216 @@
 package main
 
 import (
-	"fmt"
-	"github.com/streadway/amqp"
-	"github.com/vmpartner/go-mq/v2"
-	"github.com/vmpartner/logs"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/widget"
 	"gopkg.in/ini.v1"
-	"os"
-	"strconv"
-	"strings"
 )
 
-type Message struct {
-	Delivery   amqp.Delivery
-	BodyString string
-}
-
-var ch *amqp.Channel
-var m *mq.RabbitMQ
-var ms Message
-var f *os.File
-var config *ini.File
-var err error
-var messages <-chan amqp.Delivery
+const (
+	iniPath = "./app.conf"
+)
 
 func main() {
 
 	// Parse config
-	config, err = ini.Load("./app.conf")
-	if err != nil {
-		panic(err)
-	}
-	cfgApp := config.Section("app")
-	cfgMQ := config.Section("mq")
-	cfgFile := config.Section("file")
-
-	// Create output file
-	if !cfgFile.Key("message_per_file").MustBool() {
-		os.RemoveAll(cfgFile.Key("path").String())
-		f, err = os.Create(cfgFile.Key("path").String())
-		defer f.Close()
-	}
-
-	// Connect to MQ
-	mq.User = cfgMQ.Key("user").String()
-	mq.Pass = cfgMQ.Key("pass").String()
-	mq.Host = cfgMQ.Key("host").String()
-	mq.Port = cfgMQ.Key("port").String()
-	mq.PingEachMinute, _ = cfgMQ.Key("ping_each_minute").Int()
-	m, err = mq.New()
-	if err != nil {
-		panic(err)
-	}
-	ch, err = m.Conn.Channel()
+	config, err := ini.Load(iniPath)
 	if err != nil {
 		panic(err)
 	}
 
-	// Get messages
-	messages, err = ch.Consume(cfgMQ.Key("queue_source").String(), cfgApp.Key("name").String(), false, false, false, false, nil)
-	if err != nil {
-		panic(err)
-	}
-	k := 0
-	j := 0
-	for message := range messages {
+	a := app.New()
+	w := a.NewWindow("QULER")
+	w.Resize(fyne.Size{
+		Width:  800,
+		Height: 600,
+	})
 
-		k++
-		j++
+	// app name
+	appName := config.Section("app").Key("name").String()
+	bindAppName := binding.NewString()
+	_ = bindAppName.Set(appName)
 
-		// Convert message to read format
-		ms = Message{}
-		ms.Delivery = message
-		ms.BodyString = string(ms.Delivery.Body)
-		ms.Delivery.Body = nil
+	// sync_each_message
+	appSyncEachMessage := config.Section("app").Key("sync_each_message").MustBool()
+	bindAppSyncEachMessage := binding.NewBool()
+	_ = bindAppSyncEachMessage.Set(appSyncEachMessage)
 
-		if cfgFile.Key("message_per_file").MustBool(true) {
-			fileName := cfgFile.Key("path").String()
-			fileName = strings.Replace(fileName, "%", strconv.Itoa(j), 1)
-			os.RemoveAll(fileName)
-			f, err = os.Create(fileName)
+	// user
+	mqUser := config.Section("mq").Key("user").String()
+	bindMqUser := binding.NewString()
+	_ = bindMqUser.Set(mqUser)
+
+	// pass
+	mqPass := config.Section("mq").Key("pass").String()
+	bindMqPass := binding.NewString()
+	_ = bindMqPass.Set(mqPass)
+
+	// host
+	mqHost := config.Section("mq").Key("host").String()
+	bindMqHost := binding.NewString()
+	_ = bindMqHost.Set(mqHost)
+
+	// port
+	mqPort := config.Section("mq").Key("port").String()
+	bindMqPort := binding.NewString()
+	_ = bindMqPort.Set(mqPort)
+
+	// queue_source
+	mqQueueSource := config.Section("mq").Key("queue_source").String()
+	bindMqQueueSource := binding.NewString()
+	_ = bindMqQueueSource.Set(mqQueueSource)
+
+	// ack_message
+	mqAckMessage := config.Section("mq").Key("ack_message").MustBool()
+	bindMqAckMessage := binding.NewBool()
+	_ = bindMqAckMessage.Set(mqAckMessage)
+
+	// limit_messages
+	mqLimitMessages := config.Section("mq").Key("limit_messages").String()
+	bindMqLimitMessages := binding.NewString()
+	_ = bindMqLimitMessages.Set(mqLimitMessages)
+
+	// message_per_file
+	appMessagePerFile := config.Section("file").Key("message_per_file").MustBool()
+	bindAppMessagePerFile := binding.NewBool()
+	_ = bindAppMessagePerFile.Set(appMessagePerFile)
+
+	// path
+	mqPath := config.Section("file").Key("path").String()
+	bindMqPath := binding.NewString()
+	_ = bindMqPath.Set(mqPath)
+
+	saveConfig := func() {
+		// app name
+		s, _ := bindAppName.Get()
+		config.Section("app").Key("name").SetValue(s)
+
+		// sync_each_message
+		b, _ := bindAppSyncEachMessage.Get()
+		if b {
+			s = "true"
+		} else {
+			s = "false"
 		}
+		config.Section("app").Key("sync_each_message").SetValue(s)
 
-		// Write to file
-		_, err = f.WriteString(fmt.Sprintf("%+v", ms))
+		// user
+		s, _ = bindMqUser.Get()
+		config.Section("mq").Key("user").SetValue(s)
+
+		// pass
+		s, _ = bindMqPass.Get()
+		config.Section("mq").Key("pass").SetValue(s)
+
+		// host
+		s, _ = bindMqHost.Get()
+		config.Section("mq").Key("host").SetValue(s)
+
+		// port
+		s, _ = bindMqPort.Get()
+		config.Section("mq").Key("port").SetValue(s)
+
+		// queue_source
+		s, _ = bindMqQueueSource.Get()
+		config.Section("mq").Key("queue_source").SetValue(s)
+
+		// ack_message
+		b, _ = bindMqAckMessage.Get()
+		if b {
+			s = "true"
+		} else {
+			s = "false"
+		}
+		config.Section("mq").Key("ack_message").SetValue(s)
+
+		// limit_messages
+		s, _ = bindMqLimitMessages.Get()
+		config.Section("mq").Key("limit_messages").SetValue(s)
+
+		// message_per_file
+		b, _ = bindAppMessagePerFile.Get()
+		if b {
+			s = "true"
+		} else {
+			s = "false"
+		}
+		config.Section("file").Key("message_per_file").SetValue(s)
+
+		// limit_messages
+		s, _ = bindMqPath.Get()
+		config.Section("file").Key("path").SetValue(s)
+
+		config.SaveTo(iniPath)
+
+		// Parse config
+		config, err = ini.Load(iniPath)
 		if err != nil {
 			panic(err)
 		}
-
-		// Close file
-		if cfgFile.Key("message_per_file").MustBool(true) {
-			f.Close()
-		} else {
-			_, err = f.WriteString("\n===========================================================================\n")
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		// Sync file
-		if k >= cfgApp.Key("sync_each_message").MustInt(1) {
-			k = 0
-			f.Sync()
-		}
-
-		// Ack message
-		if cfgMQ.Key("ack_message").MustBool(false) {
-			err = message.Ack(false)
-		}
-
-		logs.InfoF("Message %d", message.Timestamp.Unix())
 	}
+
+	w.SetContent(container.NewVBox(
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Имя приложения"),
+			widget.NewEntryWithData(bindAppName),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewCheckWithData("Скидывать на диск каждое сообщение", bindAppSyncEachMessage),
+		),
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Пользователь"),
+			widget.NewEntryWithData(bindMqUser),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Пароль"),
+			widget.NewEntryWithData(bindMqPass),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Хост"),
+			widget.NewEntryWithData(bindMqHost),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Порт"),
+			widget.NewEntryWithData(bindMqPort),
+		),
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Очередь"),
+			widget.NewEntryWithData(bindMqQueueSource),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Лимит сообщений"),
+			widget.NewEntryWithData(bindMqLimitMessages),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewCheckWithData("Подтверждать сообщение при получении", bindMqAckMessage),
+		),
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+		container.NewGridWithColumns(2,
+			widget.NewCheckWithData("Отдельный файл для каждого сообщения", bindAppMessagePerFile),
+		),
+		container.NewGridWithColumns(2,
+			widget.NewLabel("Путь к файлам"),
+			widget.NewEntryWithData(bindMqPath),
+		),
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+		container.NewGridWithColumns(3,
+			widget.NewLabel(""),
+			widget.NewButton("Запустить", func() {
+				saveConfig()
+				Run(config)
+			}),
+			widget.NewLabel(""),
+		),
+	))
+
+	w.ShowAndRun()
 }
