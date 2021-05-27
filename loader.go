@@ -32,9 +32,15 @@ func Run(config *ini.File) {
 	// Create output file
 	if !cfgFile.Key("message_per_file").MustBool() {
 		fileName := cfgFile.Key("path").String()
-		_ = os.RemoveAll(fileName)
+		err = os.RemoveAll(fileName)
+		if err != nil {
+			panic(err)
+		}
 		fileName = strings.ReplaceAll(fileName, "_%", "")
 		f, err = os.Create(fileName)
+		if err != nil {
+			panic(err)
+		}
 		defer f.Close()
 	}
 
@@ -52,6 +58,7 @@ func Run(config *ini.File) {
 	if err != nil {
 		panic(err)
 	}
+	defer ch.Close()
 
 	// Get messages
 	messages, err = ch.Consume(cfgMQ.Key("queue_source").String(), cfgApp.Key("name").String(), false, false, false, false, nil)
@@ -74,8 +81,11 @@ func Run(config *ini.File) {
 		if cfgFile.Key("message_per_file").MustBool(true) {
 			fileName := cfgFile.Key("path").String()
 			fileName = strings.Replace(fileName, "%", strconv.Itoa(j), 1)
-			os.RemoveAll(fileName)
+			_ = os.RemoveAll(fileName)
 			f, err = os.Create(fileName)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		// Write to file
@@ -86,7 +96,7 @@ func Run(config *ini.File) {
 
 		// Close file
 		if cfgFile.Key("message_per_file").MustBool(true) {
-			f.Close()
+			_ = f.Close()
 		} else {
 			_, err = f.WriteString("\n===========================================================================\n")
 			if err != nil {
@@ -95,13 +105,19 @@ func Run(config *ini.File) {
 		}
 
 		// Sync file
-		if cfgApp.Key("sync_each_message").MustBool(false) {
-			f.Sync()
+		if !cfgFile.Key("message_per_file").MustBool(true) && cfgApp.Key("sync_each_message").MustBool(false) {
+			err = f.Sync()
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		// Ack message
 		if cfgMQ.Key("ack_message").MustBool(false) {
 			err = message.Ack(false)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		logs.InfoF("Message %d", message.Timestamp.Unix())

@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	fyne.io/fyne/v2 v2.0.3
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/streadway/amqp v1.0.0
 	github.com/vmpartner/go-mq/v2 v2.0.3
