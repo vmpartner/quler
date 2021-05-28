@@ -1,6 +1,4 @@
 # QULER
-[![Build Status](https://travis-ci.org/vmpartner/quler.svg?branch=master)](https://travis-ci.org/vmpartner/quler)   
-  
 Read message from RabbitMQ cross platform  
 1. Download app from [releases](https://github.com/vmpartner/quler/releases)  
 2. Change config ```app.conf```
