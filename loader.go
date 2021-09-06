@@ -60,6 +60,11 @@ func Run(config *ini.File) {
 	}
 	defer ch.Close()
 
+	err = ch.Qos(1, 0, true)
+	if err != nil {
+		panic(err)
+	}
+
 	// Get messages
 	messages, err = ch.Consume(cfgMQ.Key("queue_source").String(), cfgApp.Key("name").String(), false, false, false, false, nil)
 	if err != nil {
@@ -115,6 +120,12 @@ func Run(config *ini.File) {
 		// Ack message
 		if cfgMQ.Key("ack_message").MustBool(false) {
 			err = message.Ack(false)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// Nack message
+			err = message.Reject(true)
 			if err != nil {
 				panic(err)
 			}
